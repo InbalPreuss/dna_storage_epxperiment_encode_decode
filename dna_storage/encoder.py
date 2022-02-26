@@ -1,6 +1,9 @@
+import itertools
 from textwrap import wrap
 from typing import Union, Dict, List, Tuple
 from pathlib import Path
+
+import pandas as pd
 
 from dna_storage.rs_adapter import RSBarcodeAdapter, RSPayloadAdapter, RSWideAdapter
 from dna_storage import utils
@@ -32,6 +35,7 @@ class Encoder:
                  results_file: Union[Path, str],
                  results_file_without_rs_wide: Union[Path, str],
                  barcode_dict: Dict,
+                 z_to_k_mer_representative: Dict
                  ):
         self.file_name = binary_file_name
         self.barcode_len = barcode_len
@@ -54,6 +58,7 @@ class Encoder:
         self.barcode_coder = barcode_coder
         self.payload_coder = payload_coder
         self.wide_coder = wide_coder
+        self.z_to_k_mer_representative = z_to_k_mer_representative
 
     def run(self):
         number_of_blocks = 0
@@ -76,7 +81,7 @@ class Encoder:
                     self.save_oligo(results_file=self.results_file_without_rs_wide, oligo=oligo)
                     amount_oligos_per_block_len_to_write = amount_oligos_per_block_len_to_write - 1
 
-
+        self.create_source_target_well_for_robot()
         return number_of_blocks
 
     def binary_to_z(self, binary: str) -> str:
@@ -118,3 +123,73 @@ class Encoder:
     def save_oligo(self, results_file: Union[Path, str], oligo: str) -> None:
         with open(results_file, 'a+', encoding='utf-8') as f:
             f.write(oligo + '\n')
+
+    def create_source_target_well_for_robot(self):
+        data = pd.read_csv(self.results_file, header=None)
+        df = pd.DataFrame()
+        df_list = []
+        for _, row in data.iterrows():
+            d = {}
+            # d[0] = row[0]
+            idx=1
+            for i in range(1,5):
+                z = row[i]
+                xs = self.z_to_k_mer_representative[z]
+                for j,x in enumerate(xs,1):
+                    d[idx] = x
+                    idx+=1
+            df_list.append(d)
+
+        final_df_list = []
+        A = list(range(1,22))
+        B = ["A","C","E","G","I","K","M","O"]
+        symbols = [f"{y}{x}"for x in A for y in B]
+        col_index = [0] * 5 + [1] * 5 + [2] * 5 + [3] * 5
+        index = 0
+        import random
+
+        # for row in range(len(df_list)):
+        #     for acc in range(0, 4):
+        #         xs = []
+        #         for j in range(1, 6):
+        #             col = j + acc
+        #             xs.append(df_list[row][col])
+        #         random.shuffle(xs)
+        #         for idx, j in enumerate(range(1, 6)):
+        #             col = j + acc
+        #             df_list[row][col] = xs[idx]
+
+        # for row in range(len(df_list)):
+        #     xs = list(df_list[row].values())
+        #     random.shuffle(xs)
+        #     for col in range(1, 21):
+        #         df_list[row][col] = xs[col-1]
+
+        for row in range(len(df_list)):
+            for acc in range(0, 4):
+                for j in range(1, 6):
+                    col = j + acc * 5
+                    print(df_list[row][col])
+                    print(f"X{int(df_list[row][col][1:]) + acc * 16}")
+                    df_list[row][col] = f"X{int(df_list[row][col][1:]) + acc * 16}"
+            xs = list(df_list[row].values())
+            random.shuffle(xs)
+            for col in range(1, 21):
+                df_list[row][col] = xs[col - 1]
+
+        for i, col in zip(col_index, df_list[0].keys()):
+            index=index%167
+
+            for row in range(len(df_list)):
+                number = int(df_list[row][col][1:])
+                d = {"Source_Well": number, "Target_Well": symbols[index]}
+                print(index)
+                final_df_list.append(d)
+                index+=1
+
+        final_df = pd.DataFrame(final_df_list)
+        final_df.to_excel("C:\\Users\\Inbal\\PycharmProjects\\DnaStorage_experiment_BarIlan_encode_decode\\data\\final_df.xlsx")
+
+        a=3
+
+

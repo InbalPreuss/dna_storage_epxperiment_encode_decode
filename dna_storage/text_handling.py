@@ -170,6 +170,8 @@ class BinaryResultToText:
 
 def generate_random_text_file(size_kb: float, file: PathLike) -> None:
     text = ''.join(choice(ascii_letters) for i in range(int(1000*size_kb)))
+    text = 'Laugh at all my dreams, my dearest; laugh, and I repeat anew\nI still believe in mankind as I still believe in you\nFor my soul is not yet unsold to the golden calf of scorn\nI still believe in man and the spirit in him born\nBy the passion of his spirit shall his ancient bonds be shed\nLet the soul be given freedom, let the body have its bread\nLaugh, for I believe in friendship, and in one I still believe\nOne whose heart shall beat with my heart and with mine rejoice and grieve\nLet the time be dark with hatred, I believe in years beyond\nLove at last shall bind the peoples in an everlasting bond\nIn that day shall my own people rooted in its soil arise\nShake the yoke from off its shoulders and the darkness from its eyes\nLife and love and strength and action in their heart and blood shall beat\nAnd their hopes shall be both heaven and the earth beneath their feet\nThen a new song shall be lifted to the young, the free, the brave\nAnd the wreath to crown the singer shall be gathered from my grave'
+
     with open(file, 'w') as f:
         f.write(text)
     x=1
